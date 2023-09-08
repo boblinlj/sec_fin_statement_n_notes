@@ -117,7 +117,7 @@ class get_stock_info():
             self.updated_dt = updated_dt
 
     def _get_info(self) -> pd.DataFrame:
-        info_in_dict = yf.Ticker(self.stock).info
+        info_in_dict = yf.Ticker(self.stock).get_info(proxy="socks5://10.0.0.216:9050")
         df = pd.DataFrame.from_dict(info_in_dict, orient='index')
         return df
     
@@ -175,4 +175,5 @@ class get_stock_info():
 
 if __name__ == '__main__':
     call = get_stock_info('MS', '9999-12-31')
-    call.insert_to_db()
+    call.parse()
+    print(call.output_df)
