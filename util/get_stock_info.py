@@ -164,7 +164,8 @@ class get_stock_info():
         self.output_df.rename(columns={'index':'ticker'}, inplace=True)
     
     def parse(self):
-        return self._validate_data(self._get_info())
+        self._validate_data(self._get_info())
+        return self.output_df
     
     def insert_to_db(self):
         self._validate_data(self._get_info())
@@ -175,5 +176,5 @@ class get_stock_info():
 
 if __name__ == '__main__':
     call = get_stock_info('MS', '9999-12-31')
-    call.parse()
-    print(call.output_df)
+    
+    print(call.parse())
