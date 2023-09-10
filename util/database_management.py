@@ -5,10 +5,11 @@ class DatabaseManagementError(Exception):
     pass
 
 class DatabaseManagement:
-    def __init__(self, dataframe = None, target_table = None, insert_index = False) -> None:
+    def __init__(self, dataframe = None, target_table = None, insert_index = False, sql=None) -> None:
         self.dataframe = dataframe
         self.target_table = target_table
         self.insert_index = insert_index
+        self.sql = sql
         
         self.database_ip = '10.0.0.123'
         self.database_user = 'boblinlj'
@@ -40,6 +41,22 @@ class DatabaseManagement:
         except Exception as e:
             raise DatabaseManagementError(f'Failed to insert data into {self.target_table}, {e}')
         
+    def read_sql_to_df(self) -> pd.DataFrame:
+        """
+        Read SQL into a Pandas DataFrame, requires the following parameters:
+            sql(str): sql statement
+
+        :return: Pandas DataFrame
+        """
+        if self.sql is  None:
+            raise DatabaseManagementError(f'data extraction from database failed due to sql is none')
+        else:
+            try:
+                df = pd.read_sql(con=self.cnn, sql=self.sql)
+                return df
+            except Exception as e:
+                raise DatabaseManagementError(f"data extractions from database failed for sql={self.sql} as {e}")
+
 if __name__ == '__main__':
     call = DatabaseManagement()
     call.insert_dataframe_to_table()
