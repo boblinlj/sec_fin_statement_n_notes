@@ -2,7 +2,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as  np
 import datetime
-from enter_to_database import DatabaseManagement
+from database_management import DatabaseManagement
 pd.set_option('display.max_columns',500)
 pd.set_option('display.max_rows',500)
 PROXY = "socks5://10.0.0.216:9050"
@@ -333,5 +333,5 @@ class get_stock_financial():
         
     
 if __name__ == '__main__':
-    call = get_stock_financial('WMT', '9999-12-31')
-    call.insert_to_db()
+    call = get_stock_financial('BHR-PB', '9999-12-31')
+    call.parse()

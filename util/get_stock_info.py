@@ -2,7 +2,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as  np
 import datetime
-from enter_to_database import DatabaseManagement
+from database_management import DatabaseManagement
 
 pd.set_option('display.max_columns',500)
 
