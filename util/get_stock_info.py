@@ -5,6 +5,9 @@ import datetime
 from .database_management import DatabaseManagement
 from .parallel_processing import parallel_process
 
+from warnings import simplefilter
+simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
+
 pd.set_option('display.max_columns',500)
 PROXY = "socks5://10.0.0.216:9050"
 KEEP_COLUMNS = ['sharesOutstanding',
@@ -108,10 +111,7 @@ KEEP_COLUMNS = ['sharesOutstanding',
                 'exDividendDate']
 
 class get_stock_info():
-    
-    def __repr__(self):
-        return f"get_stock_info object <{'self.stock_list'}>"
-    
+
     def __init__(self, stock, updated_dt=datetime.date.today()) -> None:
         if isinstance(stock, list):
             self.stock_list = [stock.upper() for stock in stock]
@@ -128,7 +128,7 @@ class get_stock_info():
         df.drop(columns=['address1', 'city','state','zip','phone','website', 'companyOfficers','maxAge', 'uuid']
                 , axis=0
                 , inplace=True
-                , errors='raise')
+                , errors='ignore')
         
         if 'firstTradeDateEpochUtc' in df.columns:
             df['firstTradeDateEpochUtc'] = pd.to_datetime(df['firstTradeDateEpochUtc'], unit='s').dt.date
@@ -154,7 +154,7 @@ class get_stock_info():
         if 'exDividendDate' in df.columns:
             df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], unit='s').dt.date
 
-        df.drop(columns=[i for i in df.columns if i not in KEEP_COLUMNS], inplace=True)
+        df.drop(columns=[i for i in df.columns if i not in KEEP_COLUMNS], errors='ignore', inplace=True)
         df[[i for i in KEEP_COLUMNS if i not in df.columns]] = np.nan
         
         df['updated_dt'] = self.updated_dt
@@ -173,6 +173,6 @@ class get_stock_info():
         parallel_process(self.stock_list, self.parse, n_jobs=30, use_tqdm=True)
 
 if __name__ == '__main__':
-    call = get_stock_info(['MS','AAPL'], '9999-12-31')
+    call = get_stock_info(['AACIW'], '9999-12-31')
     
-    print(call)
+    call.run()

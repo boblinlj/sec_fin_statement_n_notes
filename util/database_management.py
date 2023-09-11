@@ -33,7 +33,6 @@ class DatabaseManagement:
             elif self.target_table is None:
                 pass
             else:
-                print(self.dataframe)
                 self.dataframe.to_sql(name = self.target_table
                                       ,con = self.cnn
                                       ,if_exists = 'append'
