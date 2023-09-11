@@ -40,7 +40,6 @@ def parallel_process(array, function, n_jobs=WORKER, use_kwargs=False, front_num
             # futures = [pool.submit(function, a) for a in array[front_num:]]
             futures = {pool.submit(function, a): a for a in array[front_num:]}
 
-        # print(futures)
         kwargs = {
             'total': len(futures),
             'unit': 'it',

@@ -2,10 +2,11 @@ import yfinance as yf
 import pandas as pd
 import numpy as  np
 import datetime
-from database_management import DatabaseManagement
+from .database_management import DatabaseManagement
+from .parallel_processing import parallel_process
 
 pd.set_option('display.max_columns',500)
-
+PROXY = "socks5://10.0.0.216:9050"
 KEEP_COLUMNS = ['sharesOutstanding',
                 'enterpriseToRevenue',
                 'enterpriseToEbitda',
@@ -108,20 +109,20 @@ KEEP_COLUMNS = ['sharesOutstanding',
 
 class get_stock_info():
     
-    def __init__(self, stock, updated_dt=None) -> None:
-        self.stock = stock
-        self.output_df = pd.DataFrame()
-        if updated_dt is None:
-            self.updated_dt = datetime.date.today()
-        else:
-            self.updated_dt = updated_dt
-
-    def _get_info(self) -> pd.DataFrame:
-        info_in_dict = yf.Ticker(self.stock).get_info(proxy="socks5://10.0.0.216:9050")
-        df = pd.DataFrame.from_dict(info_in_dict, orient='index')
-        return df
+    def __repr__(self):
+        return f"get_stock_info object <{'self.stock_list'}>"
     
-    def _validate_data(self, df) -> pd.DataFrame:
+    def __init__(self, stock, updated_dt=datetime.date.today()) -> None:
+        if isinstance(stock, list):
+            self.stock_list = [stock.upper() for stock in stock]
+        else:
+            self.stock_list = [stock]
+            
+        self.updated_dt = updated_dt
+
+    def _get_info(self, stock) -> pd.DataFrame:
+        info_in_dict = yf.Ticker(stock).get_info(proxy=PROXY)
+        df = pd.DataFrame.from_dict(info_in_dict, orient='index')
         df = df.transpose()
         df.set_index(keys=['symbol'], inplace=True)
         df.drop(columns=['address1', 'city','state','zip','phone','website', 'companyOfficers','maxAge', 'uuid']
@@ -152,29 +153,26 @@ class get_stock_info():
 
         if 'exDividendDate' in df.columns:
             df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], unit='s').dt.date
-                                
-        for e in KEEP_COLUMNS:
-            if e in df.columns:
-                self.output_df = pd.concat([self.output_df, df[e]], axis=1)
-            else:
-                self.output_df[e] = np.nan
+
+        df.drop(columns=[i for i in df.columns if i not in KEEP_COLUMNS], inplace=True)
+        df[[i for i in KEEP_COLUMNS if i not in df.columns]] = np.nan
         
-        self.output_df['updated_dt'] = self.updated_dt
-        self.output_df.reset_index(inplace=True)
-        self.output_df.rename(columns={'index':'ticker'}, inplace=True)
-    
-    def parse(self):
-        self._validate_data(self._get_info())
-        return self.output_df
-    
-    def insert_to_db(self):
-        self._validate_data(self._get_info())
-        DatabaseManagement(dataframe=self.output_df
-                           , target_table='yahoo_fundamental'
-                           , insert_index=False).insert_dataframe_to_table()
+        df['updated_dt'] = self.updated_dt
+        df.reset_index(inplace=True)
+        df.rename(columns={'symbol':'ticker'}, inplace=True)
         
+        return df
+    
+    def parse(self, stock):
+        stock_df = self._get_info(stock)
+        DatabaseManagement(dataframe=stock_df
+                            , target_table='yahoo_fundamental'
+                            , insert_index=False).insert_dataframe_to_table()
+    
+    def run(self):
+        parallel_process(self.stock_list, self.parse, n_jobs=30, use_tqdm=True)
 
 if __name__ == '__main__':
-    call = get_stock_info('MS', '9999-12-31')
+    call = get_stock_info(['MS','AAPL'], '9999-12-31')
     
-    print(call.parse())
+    print(call)

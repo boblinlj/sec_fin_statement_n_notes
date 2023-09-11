@@ -1,4 +1,4 @@
-from database_management import DatabaseManagement
+from .database_management import DatabaseManagement
 import pandas as pd
 
 class get_stock_population:

@@ -2,7 +2,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as  np
 import datetime
-from database_management import DatabaseManagement
+from .database_management import DatabaseManagement
 pd.set_option('display.max_columns',500)
 pd.set_option('display.max_rows',500)
 PROXY = "socks5://10.0.0.216:9050"
@@ -279,9 +279,9 @@ KEEP_COLUMNS  = ['AccountsPayable',
 
 class get_stock_financial():
     
-    def __init__(self, stock, update_dt = None) -> None:
+    def __init__(self, stock, updated_dt = datetime.date.today()) -> None:
         self.stock = stock
-        self.updated_dt = update_dt
+        self.updated_dt = updated_dt
         self.output_df = pd.DataFrame()
     
     def _get_income_statements(self, type = 'quarterly') -> pd.DataFrame:

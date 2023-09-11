@@ -6,6 +6,8 @@ from util.parallel_processing import parallel_process
 
 
 def main():
-    stocks = get_stock_population().parse()
-    
-    parallel_process(stocks, get_stock_info, 20, use_tqdm=True)
+    stocks = get_stock_population().parse()[:10]
+    get_stock_info(stock=stocks, updated_dt='9999-12-31').run()
+
+if __name__ == '__main__':
+    main()
