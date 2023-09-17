@@ -3,8 +3,10 @@ import pandas as pd
 import numpy as  np
 import datetime
 from .database_management import DatabaseManagement
-pd.set_option('display.max_columns',500)
-pd.set_option('display.max_rows',500)
+from .parallel_processing import parallel_process
+from warnings import simplefilter
+simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
+
 PROXY = "socks5://10.0.0.216:9050"
 
 KEEP_COLUMNS  = ['AccountsPayable',
@@ -280,58 +282,56 @@ KEEP_COLUMNS  = ['AccountsPayable',
 class get_stock_financial():
     
     def __init__(self, stock, updated_dt = datetime.date.today()) -> None:
-        self.stock = stock
+        if isinstance(stock, list):
+            self.stock_list = [stock.upper() for stock in stock]
+        else:
+            self.stock_list = [stock]
+            
         self.updated_dt = updated_dt
         self.output_df = pd.DataFrame()
     
-    def _get_income_statements(self, type = 'quarterly') -> pd.DataFrame:
-        is_dic = yf.Ticker(self.stock).get_income_stmt(proxy=PROXY, as_dict=True, freq=type)
+    def _get_income_statements(self, stock, type = 'quarterly') -> pd.DataFrame:
+        is_dic = yf.Ticker(stock).get_income_stmt(proxy=PROXY, as_dict=True, freq=type)
         is_df = pd.DataFrame.from_dict(is_dic, orient='index')
         return is_df
 
-    def _get_balance_sheets(self, type = 'quarterly') -> pd.DataFrame:
-        bs_dic = yf.Ticker(self.stock).get_balance_sheet(proxy=PROXY, as_dict=True, freq=type)
+    def _get_balance_sheets(self, stock, type = 'quarterly') -> pd.DataFrame:
+        bs_dic = yf.Ticker(stock).get_balance_sheet(proxy=PROXY, as_dict=True, freq=type)
         bs_df = pd.DataFrame.from_dict(bs_dic, orient='index')
         return bs_df
 
-    def _get_cashflow_statements(self, type = 'quarterly') -> pd.DataFrame:
-        cs_dic = yf.Ticker(self.stock).get_cash_flow(proxy=PROXY, as_dict=True, freq=type)
+    def _get_cashflow_statements(self, stock, type = 'quarterly') -> pd.DataFrame:
+        cs_dic = yf.Ticker(stock).get_cash_flow(proxy=PROXY, as_dict=True, freq=type)
         cs_df = pd.DataFrame.from_dict(cs_dic, orient='index')
         return cs_df
     
-    def _get_all_financial_information(self, type = 'quarterly')-> pd.DataFrame:
-        return pd.concat([self._get_balance_sheets(type)
-                            ,self._get_income_statements(type)
-                            ,self._get_cashflow_statements(type)
+    def _get_all_financial_information(self, stock, type = 'quarterly')-> pd.DataFrame:
+        df = pd.concat([self._get_balance_sheets(stock, type)
+                          ,self._get_income_statements(stock, type)
+                          ,self._get_cashflow_statements(stock, type)
                             ]
                         ,axis=1
                          )
 
-    def _validate_data(self, df) -> None:
+        df.drop(columns=[i for i in df.columns if i not in KEEP_COLUMNS], errors='ignore', inplace=True)
+        df[[i for i in KEEP_COLUMNS if i not in df.columns]] = np.nan
+        df['updated_dt'] = self.updated_dt
+        df.reset_index(inplace = True)
+        df.rename(columns={'index':'AsofDate'}, inplace=True)
+        df['ticker'] = stock
         
-        for e in KEEP_COLUMNS:
-            if e in df.columns:
-                self.output_df = pd.concat([self.output_df, df[e]], axis=1)
-            else:
-                self.output_df[e] = np.nan
-
-        
-        self.output_df['updated_dt'] = self.updated_dt
-        self.output_df.reset_index(inplace = True)
-        self.output_df.rename(columns={'index':'AsofDate'}, inplace=True)
-        self.output_df['ticker'] = self.stock
+        return df
     
-    def parse(self):
-        self._validate_data(self._get_all_financial_information())
-        return self.output_df
-            
-    def insert_to_db(self):
-        self._validate_data(self._get_all_financial_information())
-        DatabaseManagement(dataframe=self.output_df
+    def parse(self, stock):
+        stock_df = self._get_all_financial_information(stock)
+        DatabaseManagement(dataframe=stock_df
                            , target_table='yahoo_quarterly_financial_statements'
                            , insert_index=False).insert_dataframe_to_table()
+            
+    def run(self):
+        parallel_process(self.stock_list, self.parse, n_jobs=30, use_tqdm=True)
         
     
 if __name__ == '__main__':
     call = get_stock_financial('BHR-PB', '9999-12-31')
-    call.parse()
+    call.run()

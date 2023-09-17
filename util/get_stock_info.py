@@ -8,7 +8,6 @@ from .parallel_processing import parallel_process
 from warnings import simplefilter
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
-pd.set_option('display.max_columns',500)
 PROXY = "socks5://10.0.0.216:9050"
 KEEP_COLUMNS = ['sharesOutstanding',
                 'enterpriseToRevenue',
@@ -117,7 +116,7 @@ class get_stock_info():
             self.stock_list = [stock.upper() for stock in stock]
         else:
             self.stock_list = [stock]
-            
+
         self.updated_dt = updated_dt
 
     def _get_info(self, stock) -> pd.DataFrame:

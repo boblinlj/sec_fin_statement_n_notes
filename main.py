@@ -6,9 +6,18 @@ from util.parallel_processing import parallel_process
 from datetime import date
 
 
-def main():
+def main(option):
     stocks = get_stock_population().parse()[:]
-    get_stock_info(stock=stocks, updated_dt=date.today()).run()
+    run_dt=date.today()
+    if option.lower() == 'stock_info':
+        get_stock_info(stock=stocks, updated_dt=run_dt).run()
+    elif option.lower() == 'stock_financial':
+        get_stock_financial(stock=stocks, updated_dt=run_dt).run()
+    elif option.lower() == 'stock_earning':
+        get_stock_earning(stock=stocks, updated_dt=run_dt).run()
+    else:
+        f'Please provide one of below: 1)stock_info, 2)stock_financial, 3)stock_earning'
+        
 
 if __name__ == '__main__':
-    main()
+    main(option='stock_earning')
