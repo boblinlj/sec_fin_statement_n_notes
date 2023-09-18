@@ -14,4 +14,3 @@ class get_stock_population:
 if __name__ == '__main__':
     call = get_stock_population()
     print(call.parse())
-        

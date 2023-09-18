@@ -2,13 +2,15 @@ import yfinance as yf
 import pandas as pd
 import numpy as  np
 import datetime
+import requests 
+import random
+import logging
 from .database_management import DatabaseManagement
 from .parallel_processing import parallel_process
-
+from .configs import UA_LIST, PROXY
 from warnings import simplefilter
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
-PROXY = "socks5://10.0.0.216:9050"
 KEEP_COLUMNS = ['sharesOutstanding',
                 'enterpriseToRevenue',
                 'enterpriseToEbitda',
@@ -120,6 +122,17 @@ class get_stock_info():
         self.updated_dt = updated_dt
 
     def _get_info(self, stock) -> pd.DataFrame:
+        session = requests.session()
+        session.headers = {
+            'user-agent': random.choice(UA_LIST),
+            'Accept-Language': 'en-GB,en;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,zh-TW;q=0.5',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Sec-Fetch-Dest': 'iframe',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'cross-site',
+            'origin': 'https://google.com'
+        }
         info_in_dict = yf.Ticker(stock).get_info(proxy=PROXY)
         df = pd.DataFrame.from_dict(info_in_dict, orient='index')
         df = df.transpose()
@@ -174,4 +187,4 @@ class get_stock_info():
 if __name__ == '__main__':
     call = get_stock_info(['AACIW'], '9999-12-31')
     
-    call.run()
+    print(call._get_info('aapl'))
